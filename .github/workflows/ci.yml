@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
+
+      - name: Check go.mod and go.sum
+        run: go mod tidy -diff
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test -race ./...
+
+      - name: Build
+        run: go build ./...
+
+  install-script:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Lint install.sh
+        run: shellcheck install.sh

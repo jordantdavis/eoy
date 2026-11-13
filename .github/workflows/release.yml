@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+    env:
+      # The asset names must match install.sh and internal/update.
+      NAME: eoy_${{ github.ref_name }}_${{ matrix.goos }}_${{ matrix.goarch }}
+      PKG: github.com/jordantdavis/eoy/internal/version
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          mkdir -p "build/$NAME"
+          go build -trimpath \
+            -ldflags "-s -w -X $PKG.version=${GITHUB_REF_NAME} -X $PKG.commit=${GITHUB_SHA}" \
+            -o "build/$NAME/eoy" .
+          cp README.md "build/$NAME/"
+          tar -C build -czf "$NAME.tar.gz" "$NAME"
+
+      - name: Smoke test
+        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
+        run: |
+          out=$("build/$NAME/eoy" version)
+          echo "$out"
+          case "$out" in "$GITHUB_REF_NAME ("*) ;; *) echo "unexpected version output" >&2; exit 1 ;; esac
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.NAME }}
+          path: ${{ env.NAME }}.tar.gz
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum -- *.tar.gz > checksums.txt
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "$GITHUB_REF_NAME" --generate-notes --verify-tag
