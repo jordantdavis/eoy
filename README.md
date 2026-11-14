@@ -179,6 +179,9 @@ A later sync or import can add a deleted item back. The item comes back without 
 
 ## Use eoy with an AI agent
 
+> [!NOTE]
+> At this time, `eoy init` sets up only Claude Code. It does not support other AI agents. To use another agent, run `eoy prime` and give the output to the agent.
+
 Run this command in the project directory where you work with Claude Code:
 
 ```sh
@@ -187,11 +190,14 @@ eoy init
 
 The command adds a SessionStart hook to `.claude/settings.local.json`. That file is personal and is not committed. At the start of each session, the hook runs `eoy prime`. That command prints a guide that tells the agent how to use eoy and which steps need you. The hook also runs after a resume, a clear, and a compaction.
 
-To write the hook to `.claude/settings.json`, the file that teams commit, use `eoy init --shared`. A second run changes nothing. The command keeps your other settings, but it can change the order of the keys.
+To write the hook to `.claude/settings.json`, the file that teams commit, use `eoy init --shared`. A second run changes nothing. The command keeps the rest of your configuration, but it can change the order of the keys.
 
-`eoy init` never writes your user-level settings. If you run it in your home directory, it fails. The hook runs `eoy prime` by name, so `eoy` must be on your PATH. To read the guide yourself, run `eoy prime`.
+`eoy init` never writes your user-level Claude Code configuration. If you run it in your home directory, it fails. The hook runs `eoy prime` by name, so `eoy` must be on your PATH. To read the guide yourself, run `eoy prime`.
 
 ## Files
+
+> [!NOTE]
+> eoy stores data only in a local SQLite file. It has no remote or shared storage, and it does not sync the database between computers. To move your data to another computer, copy the database file.
 
 | File | Default path | Change it with |
 |---|---|---|
