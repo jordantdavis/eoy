@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-eoy is a single-binary command line tool written in Go with Cobra. `README.md` is the user documentation. If you change behavior, update `README.md` too.
+eoy is a single-binary command line tool written in Go with Cobra. It stores evidence for performance reviews in SQLite. `README.md` is the user documentation. If you change behavior, update `README.md` too.
 
 ## Commands
 
@@ -30,12 +30,14 @@ Every command that acts on data follows kubectl:
 eoy VERB RESOURCE [NAME...] [flags]
 ```
 
-- VERB is one of the entries in `Verbs` in `internal/cli/resource.go`: `get`, `describe`, `create`, `delete`. Add a new verb there, not as a top-level command.
-- RESOURCE is the plural name, the singular name, or a short name. All three select the same command. For example, `eoy get routes`, `eoy get route` and `eoy get rt` are one command.
+- VERB is one of the entries in `Verbs` in `internal/cli/resource.go`: `get`, `describe`, `create`, `delete`, `tag`, `sync`. Add a new verb there, not as a top-level command.
+- RESOURCE is the plural name, the singular name, or a short name. All three select the same command. For example, `eoy get pullrequests`, `eoy get pullrequest` and `eoy get pr` are one command.
 - NAME is zero or more resource names. Flags can come before or after the names.
-- Output flags follow kubectl: `-o` selects the format (for example `-o json`), and `--no-headers` removes the table header.
+- Output flags follow kubectl: `-o` selects the format (`json`, `wide`, `name`), and `--no-headers` removes the table header. Use `addOutputFlags` and `newTable` in `internal/cli/common.go`.
+- `eoy tag RESOURCE ID TAG...` adds tags. A trailing `-` removes a tag, as in `kubectl label`.
+- `delete` without `--force` only lists what it would delete.
 
-Commands that act on eoy itself are top-level and take no resource, like `kubectl version`. These are `version`, `update` and `api-resources`. Do not add `eoy VERB` commands that bypass the resource layer, and do not add resource commands as top-level commands.
+Commands that act on eoy itself are top-level and take no resource, like `kubectl version`. These are `version`, `update`, `api-resources`, `prime` and `init`. Do not add `eoy VERB` commands that bypass the resource layer, and do not add resource commands as top-level commands.
 
 To add a resource:
 
@@ -45,7 +47,7 @@ To add a resource:
 4. Add the resource to `Resources()` in `internal/cli/resources.go`.
 5. Test it with `run()` in `internal/cli/cli_test.go`.
 
-A verb that no resource supports does not appear in help. Today `Resources()` is empty, so only `version`, `update` and `api-resources` exist.
+A verb that no resource supports does not appear in help. The resources are `evidence`, `pullrequests`, `notes`, `tags`, `summary` and `mannequins`.
 
 ## Architecture
 
@@ -55,6 +57,15 @@ A verb that no resource supports does not appear in help. Today `Resources()` is
 - `internal/update` does the same steps as `install.sh`. It finds the latest tag from the `releases/latest` redirect. It compares the SHA-256 sum with `checksums.txt`. Then it runs `<new binary> version` and renames the new binary over `os.Executable()`.
 - The asset names (`eoy_<tag>_<os>_<arch>.tar.gz` with folder `eoy_<tag>_<os>_<arch>/eoy`) must match `release.yml`, `install.sh` and `internal/update`. Every release must keep the `version` command, because `update` uses it as a smoke test.
 
+## Data model
+
+- `internal/store` owns the SQLite file. Migrations are `internal/store/migrations/NNN_*.sql`, applied in order and tracked by `PRAGMA user_version`. Never edit a migration that shipped. Add a new file.
+- Every piece of evidence is one row in `evidence`, with a free-form `source`. The ID is `SOURCE:HASH`. With an `external_id`, the hash comes from the source and the external ID, and a re-import updates the row found by `(source, external_id)`.
+- PRs are evidence with source `pr` (`store.PRSource`) and ID `pr:GITHUB_ID`, plus one row in `pull_requests`. Only `eoy sync prs` writes that source. The `pullrequests` resource reuses the evidence commands through `evidenceKind`.
+- `notes` has many rows per evidence. `evidence_tags` and `note_tags` hold tags. Foreign keys cascade, so a delete of evidence removes its PR row, notes and tags.
+- Imports and syncs never remove notes or tags.
+- `internal/gh` talks to GitHub. `internal/config` reads `config.toml`. `internal/daterange` parses `--from`, `--to` and timestamps.
+
 ## Tests
 
-`internal/update/update_test.go` has `fakeRelease`, a fake GitHub server, and `newTestUpdater`. `internal/cli/cli_test.go` has `fakeResource` and `run`. Tests replace the `newUpdater` variable to avoid the network. Use these helpers for new tests.
+`internal/update/update_test.go` has `fakeRelease`, a fake GitHub server, and `newTestUpdater`. `internal/cli/cli_test.go` has `fakeResource` and `run`. `internal/cli/evidence_test.go` has `newEnv`, which gives a temporary database and a fixed clock, and `fakeGitHub`. Tests replace the `newUpdater`, `newGitHub` and `now` variables to avoid the network and the real clock. Use these helpers for new tests.

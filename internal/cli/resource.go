@@ -16,17 +16,19 @@ var Verbs = []struct{ Name, Short string }{
 	{"describe", "Show details of a specific resource"},
 	{"create", "Create a resource"},
 	{"delete", "Delete resources"},
+	{"tag", "Add or remove tags on a resource"},
+	{"sync", "Fetch resources from their source and store them"},
 }
 
-// Resource is a kind of object that eoy manages, such as a "route" in
-// quickproxy. To add one, return it from Resources in resources.go.
+// Resource is a kind of object that eoy manages, such as "evidence" or
+// "notes". To add one, return it from Resources in resources.go.
 type Resource struct {
-	// Name is the singular name, for example "route".
+	// Name is the singular name, for example "note".
 	Name string
-	// Plural is the plural name, for example "routes". It is the canonical
+	// Plural is the plural name, for example "notes". It is the canonical
 	// name in help and in "eoy api-resources".
 	Plural string
-	// ShortNames are extra aliases, for example "rt".
+	// ShortNames are extra aliases, for example "ev".
 	ShortNames []string
 	// Commands maps a verb from Verbs to a function that returns the leaf
 	// command. The leaf's Use gives only the arguments after the resource
@@ -40,8 +42,8 @@ func (r Resource) names() []string {
 }
 
 // newVerbCmds returns one command per verb that a resource supports. Each
-// resource becomes a subcommand of the verb, so that "eoy get routes",
-// "eoy get route" and "eoy get rt" are the same command.
+// resource becomes a subcommand of the verb, so that "eoy get pullrequests",
+// "eoy get pullrequest" and "eoy get pr" are the same command.
 func newVerbCmds(resources []Resource) []*cobra.Command {
 	var cmds []*cobra.Command
 	for _, v := range Verbs {
@@ -61,7 +63,11 @@ func newVerbCmds(resources []Resource) []*cobra.Command {
 			}
 			leaf := newLeaf()
 			leaf.Use = strings.TrimSpace(r.Plural + " " + leaf.Use)
-			leaf.Aliases = append([]string{r.Name}, r.ShortNames...)
+			for _, alias := range append([]string{r.Name}, r.ShortNames...) {
+				if alias != r.Plural {
+					leaf.Aliases = append(leaf.Aliases, alias)
+				}
+			}
 			verb.AddCommand(leaf)
 		}
 		if verb.HasSubCommands() {
