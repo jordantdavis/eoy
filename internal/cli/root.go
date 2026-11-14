@@ -3,8 +3,8 @@
 //	eoy VERB RESOURCE [NAME...] [flags]
 //
 // A resource registers one leaf command per verb that it supports (see
-// Resource). The top-level commands "version" and "update" act on eoy itself,
-// like "kubectl version".
+// Resource). The top-level commands "version", "update", "api-resources",
+// "prime" and "init" act on eoy itself, like "kubectl version".
 package cli
 
 import (
@@ -41,9 +41,11 @@ func usageErrorf(format string, a ...any) error {
 func NewRootCmd(resources []Resource) *cobra.Command {
 	root := &cobra.Command{
 		Use:   "eoy",
-		Short: "eoy is a command line tool",
-		Long: "eoy is a command line tool.\n\n" +
-			"Commands follow kubectl: eoy VERB RESOURCE [NAME...] [flags].",
+		Short: "Store evidence for mid-year and end-of-year reviews",
+		Long: "eoy stores evidence for mid-year and end-of-year reviews in a local SQLite file.\n" +
+			"Evidence can come from any source. Merged GitHub PRs have their own resource.\n\n" +
+			"Commands follow kubectl: eoy VERB RESOURCE [NAME...] [flags].\n" +
+			"Run \"eoy api-resources\" to see the resources and their verbs.",
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		// Without RunE, cobra prints help and exits 0 for an unknown command.
@@ -52,6 +54,7 @@ func NewRootCmd(resources []Resource) *cobra.Command {
 	}
 	root.CompletionOptions.HiddenDefaultCmd = true
 	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error { return usageError{err} })
+	addDataFlags(root)
 
 	if verbs := newVerbCmds(resources); len(verbs) > 0 {
 		root.AddGroup(&cobra.Group{ID: groupBasic, Title: "Basic commands:"})
@@ -63,7 +66,7 @@ func NewRootCmd(resources []Resource) *cobra.Command {
 	root.AddGroup(&cobra.Group{ID: groupOther, Title: "Other commands:"})
 	root.SetHelpCommandGroupID(groupOther)
 	root.SetCompletionCommandGroupID(groupOther)
-	for _, c := range []*cobra.Command{newAPIResourcesCmd(resources), newVersionCmd(), newUpdateCmd()} {
+	for _, c := range []*cobra.Command{newAPIResourcesCmd(resources), newVersionCmd(), newUpdateCmd(), newPrimeCmd(), newInitCmd()} {
 		c.GroupID = groupOther
 		root.AddCommand(c)
 	}
