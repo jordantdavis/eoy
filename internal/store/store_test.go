@@ -263,41 +263,6 @@ func TestNotes(t *testing.T) {
 	}
 }
 
-func TestSummary(t *testing.T) {
-	s := openTemp(t)
-	_, ids := mustUpsert(t, s, sampleEvidence())
-	s.UpsertPRs(ctx, samplePRs(), now)
-	s.TagEvidence(ctx, ids[1], []string{"kudos"}, nil)
-
-	r, _ := daterange.Parse("2026-02-15", "2026-11-30")
-	sum, err := s.Summary(ctx, Filter{Range: r})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(sum.Months) != 10 || sum.Months[0].Month != "2026-02" || sum.Months[9].Month != "2026-11" {
-		t.Fatalf("months = %+v", sum.Months)
-	}
-	march := sum.Months[1]
-	if march.Total != 1 || len(march.Sources) != 3 {
-		t.Errorf("march = %+v", march)
-	}
-	wantSources := []Count{{"email", 1}, {"pr", 1}, {"slack", 1}}
-	if !slices.Equal(sum.Sources, wantSources) {
-		t.Errorf("sources = %+v", sum.Sources)
-	}
-	if !slices.Equal(sum.Repos, []Count{{"org/app", 1}}) {
-		t.Errorf("repos = %+v", sum.Repos)
-	}
-	if !slices.Equal(sum.Tags, []Count{{"kudos", 2}}) {
-		t.Errorf("tags = %+v", sum.Tags)
-	}
-
-	open, err := s.Summary(ctx, Filter{Sources: []string{"slack"}})
-	if err != nil || len(open.Months) != 1 || open.Months[0].Month != "2026-10" {
-		t.Errorf("open range summary = %+v, %v", open.Months, err)
-	}
-}
-
 func TestOpenRejectsNewerSchema(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "eoy.db")
 	s, err := Open(path)

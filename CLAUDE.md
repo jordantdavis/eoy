@@ -47,7 +47,7 @@ To add a resource:
 4. Add the resource to `Resources()` in `internal/cli/resources.go`.
 5. Test it with `run()` in `internal/cli/cli_test.go`.
 
-A verb that no resource supports does not appear in help. The resources are `evidence`, `pullrequests`, `notes`, `tags`, `summary` and `mannequins`.
+A verb that no resource supports does not appear in help. The resources are `evidence`, `pullrequests`, `notes`, `tags` and `mannequins`.
 
 ## Architecture
 

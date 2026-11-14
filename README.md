@@ -35,7 +35,6 @@ To sync PRs, you also need a GitHub token. eoy uses `GH_TOKEN`, then `GITHUB_TOK
 | `pullrequests` | `pr`, `prs` | get, describe, delete, tag, sync | Evidence with the source `pr`, with PR columns. |
 | `notes` | | get, describe, create, delete, tag | Notes on evidence. |
 | `tags` | | get | Every tag with the number of items that have it. |
-| `summary` | `sum` | get | Counts by month, source, repo, and tag. |
 | `mannequins` | | get, create | The placeholder login of an org migration. |
 
 Each resource also accepts its singular name. For example, `eoy get notes` and `eoy get note` are the same command. Run `eoy api-resources` to print this list.
@@ -165,18 +164,6 @@ eoy get tags
 ```
 
 Tags are lowercase. A tag has letters, digits, `.`, `_`, `/`, and `-`, and it cannot end with `-`.
-
-## Summarize your evidence
-
-```sh
-eoy get summary
-eoy get summary --from 2026-01-01 --to 2026-06-30 --by month,tag
-eoy get summary --source pr --by repo --top 0
-```
-
-The command prints count tables with a bar for each count. It has four sections: by month, by source, PRs by repo, and by tag. If the evidence has more than one source, the month table has one row for each source in each month.
-
-To show only some sections, use `--by`. The source, repo, and tag tables show the top 10 rows. To change the limit, use `--top N`. To show all rows, use `--top 0`. If you omit `--from`, the range starts on January 1 of this year. If you omit `--to`, the range ends today. `--source` and `--tag` filter like `eoy get evidence`. For JSON output, use `-o json`.
 
 ## Delete evidence and notes
 

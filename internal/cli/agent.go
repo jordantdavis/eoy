@@ -34,7 +34,6 @@ Use -o json when you read output in a program or an agent.
 - eoy describe evidence ID               (every field, tag, and note)
 - eoy get notes --evidence ID
 - eoy get tags                           (every tag with counts)
-- eoy get summary -o json                (counts by month, source, repo, and tag)
 
 ## Add and annotate evidence
 
@@ -51,8 +50,8 @@ updates each item and adds no duplicates. Notes and tags stay after a re-import.
 To import an export from another tool, such as a CSV file, convert it to this
 JSON format.
 
-If you omit --from, a sync or a summary starts on January 1 of this year. If
-you omit --to, it ends today.
+If you omit --from, a sync starts on January 1 of this year. If you omit
+--to, it ends today.
 
 ## Steps that only the user can do
 
@@ -74,8 +73,7 @@ you omit --to, it ends today.
 1. Run eoy sync prs for the review period.
 2. Ask the user for exports from other sources. Convert them and run
    eoy create evidence -f.
-3. Run eoy get summary --from ... --to ... -o json for the shape of the period.
-   Then run eoy get evidence --from ... --to ... -o json to read the evidence.
+3. Run eoy get evidence --from ... --to ... -o json to read the evidence.
 4. With the user, tag evidence by theme and add notes.
 5. Draft the review from eoy get evidence -o json.
 

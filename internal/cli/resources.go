@@ -8,7 +8,6 @@ func Resources() []Resource {
 		pullRequestResource(),
 		noteResource(),
 		tagResource(),
-		summaryResource(),
 		mannequinResource(),
 	}
 }

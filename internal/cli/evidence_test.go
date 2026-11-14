@@ -206,60 +206,11 @@ func TestEvidenceErrors(t *testing.T) {
 		{[]string{"get", "notes", "abc"}, ExitUsage, "want a number"},
 		{[]string{"tag", "evidence", id, "Bad Tag"}, ExitError, `tag "Bad Tag"`},
 		{[]string{"tag", "evidence", id}, ExitUsage, "requires at least 2 arg"},
-		{[]string{"get", "summary", "--by", "person"}, ExitUsage, `--by "person"`},
 	}
 	for _, c := range cases {
 		code, _, errOut := e.run(c.args...)
 		if code != c.code || !strings.Contains(errOut, c.want) {
 			t.Errorf("%v: code %d, stderr %q; want %d and %q", c.args, code, errOut, c.code, c.want)
-		}
-	}
-}
-
-func TestSummary(t *testing.T) {
-	e := newEnv(t)
-	e.ok("create", "evidence", "--source", "slack", "--date", "2026-03-04", "--tag", "kudos", "a")
-	e.ok("create", "evidence", "--source", "slack", "--date", "2026-03-20", "b")
-	e.ok("create", "evidence", "--source", "email", "--date", "2026-04-01", "--tag", "kudos", "c")
-
-	out := e.ok("get", "summary", "--from", "2026-03-01", "--to", "2026-04-30")
-	want := `By month  2026-03-01 to 2026-04-30
-MONTH    SOURCE  ITEMS
-2026-03  slack       2  ██
-         email       0
-2026-04  slack       0
-         email       1  █
-
-By source
-SOURCE  ITEMS
-slack       2  ██
-email       1  █
-
-PRs by repo
-none
-
-By tag
-TAG    ITEMS
-kudos      2  ██
-`
-	if out != want {
-		t.Errorf("summary:\n%s\nwant:\n%s", out, want)
-	}
-
-	var res summaryOut
-	if err := json.Unmarshal([]byte(e.ok("get", "sum", "--source", "email", "--by", "month,tag", "-o", "json")), &res); err != nil {
-		t.Fatal(err)
-	}
-	if res.From != "2026-01-01" || res.To != "2026-11-11" || len(res.Months) != 11 || res.Sources != nil || len(res.Tags.Rows) != 1 {
-		t.Errorf("json summary %+v", res)
-	}
-}
-
-func TestBar(t *testing.T) {
-	cases := []struct{ n, most, want int }{{0, 5, 0}, {3, 5, 3}, {1, 300, 1}, {150, 300, 15}, {300, 300, 30}}
-	for _, c := range cases {
-		if got := len([]rune(bar(c.n, c.most, 30))); got != c.want {
-			t.Errorf("bar(%d, %d) has %d cells, want %d", c.n, c.most, got, c.want)
 		}
 	}
 }
